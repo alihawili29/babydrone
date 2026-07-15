@@ -1,0 +1,17 @@
+{
+  "throttle": {
+    "minimum_code": null,
+    "centre_code": null,
+    "maximum_code": null
+  },
+  "pitch": {
+    "backward_code": null,
+    "centre_code": null,
+    "forward_code": null
+  },
+  "roll": {
+    "left_code": null,
+    "centre_code": null,
+    "right_code": null
+  }
+}

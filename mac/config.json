@@ -1,0 +1,22 @@
+{
+  "network": {
+    "pi_host": "192.168.1.50",
+    "port": 5005
+  },
+  "camera": {
+    "width": 640,
+    "height": 480
+  },
+  "mediapipe": {
+    "min_hand_detection_confidence": 0.6,
+    "min_hand_presence_confidence": 0.6,
+    "min_tracking_confidence": 0.6
+  },
+  "control": {
+    "throttle_rate": 0.25,
+    "direction_strength": 0.25,
+    "right_missing_descent_rate": 0.25,
+    "debounce_ms": 125,
+    "angle_threshold_deg": 45.0
+  }
+}

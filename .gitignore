@@ -3,3 +3,6 @@ __pycache__/
 .venv/
 venv/
 .DS_Store
+.pytest_cache/
+models/*.task
+logs/*.csv

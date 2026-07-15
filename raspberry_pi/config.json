@@ -1,0 +1,26 @@
+{
+  "network": {
+    "listen_ip": "0.0.0.0",
+    "listen_port": 5005,
+    "watchdog_ms": 500
+  },
+  "dac": {
+    "throttle": {
+      "bus": 1,
+      "address": "0x62"
+    },
+    "pitch": {
+      "bus": 1,
+      "address": "0x63"
+    },
+    "roll": {
+      "bus": 3,
+      "address": "0x62"
+    }
+  },
+  "smoothing": {
+    "throttle_alpha": 0.3,
+    "pitch_alpha": 0.4,
+    "roll_alpha": 0.4
+  }
+}
