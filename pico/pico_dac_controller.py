@@ -1,6 +1,6 @@
 """
 Pico W firmware (MicroPython) — Hand-Gesture Drone Flight
-CSIS-418 | Team Ginyard International Co.
+CSIS-418 
 Hardware: 4x MCP4725 single-channel DACs on one I2C bus (NOT an MCP4728).
 Each physical chip is addressed separately — replace the placeholder
 addresses below with what i2c_scan.py actually reports for your boards.
