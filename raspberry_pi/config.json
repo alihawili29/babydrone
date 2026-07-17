@@ -7,15 +7,15 @@
   "dac": {
     "throttle": {
       "bus": 1,
-      "address": "0x62"
+      "address": "0x60"
     },
     "pitch": {
       "bus": 1,
-      "address": "0x63"
+      "address": "0x61"
     },
     "roll": {
       "bus": 3,
-      "address": "0x62"
+      "address": "0x60"
     }
   },
   "smoothing": {
