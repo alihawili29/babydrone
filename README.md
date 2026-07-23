@@ -5,7 +5,7 @@ CSIS-418
 **This replaces the earlier Pico + USB serial + MCP4728 design entirely.**
 Everything in your old `babydrone` repo's `pico/` folder no longer applies —
 this is Wi-Fi (UDP) instead of USB serial, a Raspberry Pi instead of a Pico,
-and three separate MCP4725 DACs instead of one MCP4728.
+and a mixed set of single-channel DACs instead of one MCP4728.
 
 ## Architecture
 
@@ -16,8 +16,11 @@ MacBook (camera, MediaPipe, gesture logic)
 Raspberry Pi (watchdog, smoothing, calibration mapping)
         |
         v
-3x MCP4725 DACs -> H36 remote's throttle, pitch, roll joystick pads
+2x MCP4725 + 1x PCF8591 -> H36 remote's throttle, pitch, roll joystick pads
 ```
+
+See [HARDWARE.md](HARDWARE.md) for the full wiring table (device/bus/address/
+pad/wire color per axis) and each axis's voltage range.
 
 Two independent programs — `mac/` and `raspberry_pi/` — talking over UDP.
 See `mac/main.py` and `raspberry_pi/main.py` as the entry points.
@@ -104,15 +107,15 @@ mapping logic before any soldering happens.
 
 ## Before real flight
 
-Both of these must happen before `pitch`/`roll`/`throttle` commands
-actually reach the DACs — the code intentionally refuses to drive
-uncalibrated hardware:
+`raspberry_pi/calibration.json` is now fully populated with real,
+hardware-measured codes for all three axes (throttle, pitch, roll) — see
+[HARDWARE.md](HARDWARE.md) for how each was measured. The code intentionally
+refuses to drive any DAC while `calibration.json` has null values, so this
+gate no longer blocks flight, but still worth doing before real flight:
 
-1. **Fill in `raspberry_pi/calibration.json`** — the `null` values need
-   real multimeter readings for each axis's min/centre/max voltage codes.
-2. **Confirm the second I2C bus number** in `raspberry_pi/config.json`
-   (`dac.roll.bus` is currently a placeholder, `3` — this must be
-   verified against your actual Pi's enabled I2C interfaces).
+1. **Confirm the I2C bus numbers** in `raspberry_pi/config.json` against
+   your actual Pi's enabled I2C interfaces (throttle is on bus 3, pitch and
+   roll share bus 1 — see [HARDWARE.md](HARDWARE.md)).
 
 ## Running the tests
 
@@ -131,7 +134,7 @@ packet validation, mock DAC, gesture-log analysis, target tracking) in isolation
 |---|---|---|
 | Transport | USB serial | Wi-Fi UDP |
 | Microcontroller | Raspberry Pi Pico W | Raspberry Pi 4 |
-| DAC | 1x MCP4728 (4 channels) | 3x MCP4725 (1 channel each) |
+| DAC | 1x MCP4728 (4 channels) | 2x MCP4725 (throttle, pitch) + 1x PCF8591 (roll) |
 | Axes controlled | Throttle only | Throttle, pitch, roll |
 | Hands used | 1 (right) | 2 (right=throttle, left=pitch/roll) |
 

@@ -15,9 +15,14 @@ import time
 
 from calibration import Calibration
 from failsafe import Watchdog, ARMED, FAILSAFE, EMERGENCY_STOP
-from mcp4725 import MCP4725, MockMCP4725
+from mcp4725 import MCP4725, MockMCP4725, PCF8591, MockPCF8591
 from output_filter import OutputFilters
 from udp_receiver import UdpReceiver, validate_packet
+
+DAC_CLASSES = {
+    "MCP4725": (MCP4725, MockMCP4725),
+    "PCF8591": (PCF8591, MockPCF8591),
+}
 
 
 def load_config(path):
@@ -26,12 +31,49 @@ def load_config(path):
 
 
 def build_dac(cfg, axis, mock, label):
-    bus = cfg["dac"][axis]["bus"]
-    addr = int(cfg["dac"][axis]["address"], 16) if isinstance(cfg["dac"][axis]["address"], str) \
-        else cfg["dac"][axis]["address"]
+    axis_cfg = cfg["dac"][axis]
+    bus = axis_cfg["bus"]
+    addr = int(axis_cfg["address"], 16) if isinstance(axis_cfg["address"], str) \
+        else axis_cfg["address"]
+    device = axis_cfg.get("device", "MCP4725")
+    if device not in DAC_CLASSES:
+        raise ValueError(f"unknown dac device type for axis {axis!r}: {device!r}")
+    real_cls, mock_cls = DAC_CLASSES[device]
     if mock:
-        return MockMCP4725(bus, addr, label=label)
-    return MCP4725(bus, addr)
+        return mock_cls(bus, addr, label=label)
+    return real_cls(bus, addr)
+
+
+def targets_for_state(state, pending_throttle, pending_pitch, pending_roll, throttle_override):
+    """Given the watchdog's current state (and, if FAILSAFE, its throttle
+    override), decide what throttle/pitch/roll targets should actually be
+    sent to the DACs this loop. Pulled out of main() so this decision is
+    unit-testable without a live socket."""
+    if state == EMERGENCY_STOP:
+        return 0.0, 0.0, 0.0
+    elif state == FAILSAFE:
+        return throttle_override, 0.0, 0.0
+    elif state == ARMED:
+        return pending_throttle, pending_pitch, pending_roll
+    else:  # DISARMED
+        return 0.0, 0.0, 0.0
+
+
+def write_safe_exit_values(calibration, throttle_dac, pitch_dac, roll_dac, verbose=False):
+    """Best-effort: leave every DAC at its calibrated safe/neutral code
+    before we let go of the I2C bus. The DAC fast-mode write doesn't touch
+    EEPROM, so the chip keeps outputting whatever was last commanded even
+    after this process exits — without this, killing the process mid-flight
+    would leave a non-zero throttle latched on the output indefinitely."""
+    if not calibration.is_complete():
+        return
+    try:
+        throttle_dac.set_value(calibration.throttle_code(0.0))
+        pitch_dac.set_value(calibration.pitch_code(0.0))
+        roll_dac.set_value(calibration.roll_code(0.0))
+    except (IOError, ValueError) as e:
+        if verbose:
+            print(f"[WARN] failed to write safe exit values: {e}")
 
 
 def main():
@@ -118,17 +160,10 @@ def main():
             state, throttle_override = watchdog.tick(now, 1.0 / 20.0, last_throttle_target)
 
             # figure out what to actually send to the DACs this loop, based on current state
-            if state == EMERGENCY_STOP:
-                throttle_target, pitch_target, roll_target = 0.0, 0.0, 0.0
-            elif state == FAILSAFE:
-                throttle_target = throttle_override
-                pitch_target, roll_target = 0.0, 0.0
-            elif state == ARMED:
-                throttle_target = pending_throttle_target
-                pitch_target = pending_pitch_target
-                roll_target = pending_roll_target
-            else:  # DISARMED
-                throttle_target, pitch_target, roll_target = 0.0, 0.0, 0.0
+            throttle_target, pitch_target, roll_target = targets_for_state(
+                state, pending_throttle_target, pending_pitch_target, pending_roll_target,
+                throttle_override,
+            )
 
             f_throttle, f_pitch, f_roll = filters.update(throttle_target, pitch_target, roll_target)
 
@@ -179,6 +214,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        write_safe_exit_values(calibration, throttle_dac, pitch_dac, roll_dac, verbose=args.verbose)
         throttle_dac.close()
         pitch_dac.close()
         roll_dac.close()

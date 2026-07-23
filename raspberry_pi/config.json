@@ -6,16 +6,19 @@
   },
   "dac": {
     "throttle": {
-      "bus": 1,
+      "device": "MCP4725",
+      "bus": 3,
       "address": "0x60"
     },
     "pitch": {
+      "device": "MCP4725",
       "bus": 1,
       "address": "0x61"
     },
     "roll": {
-      "bus": 3,
-      "address": "0x60"
+      "device": "PCF8591",
+      "bus": 1,
+      "address": "0x48"
     }
   },
   "smoothing": {

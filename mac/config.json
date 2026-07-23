@@ -15,6 +15,8 @@
   "control": {
     "throttle_rate": 0.25,
     "direction_strength": 0.25,
+    "pitch_strength": 0.25,
+    "roll_strength": 0.25,
     "right_missing_descent_rate": 0.25,
     "debounce_ms": 125,
     "angle_threshold_deg": 45.0

@@ -77,7 +77,10 @@ def main():
     parser.add_argument("--show-angles", action="store_true")
     parser.add_argument("--log-file", default=os.path.join(os.path.dirname(__file__), "..", "logs", "mac_log.csv"))
     parser.add_argument("--throttle-rate", type=float, default=None)
-    parser.add_argument("--direction-strength", type=float, default=None)
+    parser.add_argument("--direction-strength", type=float, default=None,
+                         help="fallback for --pitch-strength/--roll-strength when they're not set")
+    parser.add_argument("--pitch-strength", type=float, default=None)
+    parser.add_argument("--roll-strength", type=float, default=None)
     parser.add_argument("--debounce-ms", type=int, default=None)
     parser.add_argument("--test-label", default="unlabeled",
                          help="tag for this test session, written to every CSV row as test_condition "
@@ -90,6 +93,10 @@ def main():
     port = args.port or cfg["network"]["port"]
     throttle_rate = args.throttle_rate or cfg["control"]["throttle_rate"]
     direction_strength = args.direction_strength or cfg["control"]["direction_strength"]
+    pitch_strength = args.pitch_strength or args.direction_strength \
+        or cfg["control"].get("pitch_strength", direction_strength)
+    roll_strength = args.roll_strength or args.direction_strength \
+        or cfg["control"].get("roll_strength", direction_strength)
     debounce_ms = args.debounce_ms or cfg["control"]["debounce_ms"]
     angle_thresh = cfg["control"]["angle_threshold_deg"]
 
@@ -104,7 +111,8 @@ def main():
     )
     controller = CommandController(
         throttle_rate=throttle_rate,
-        direction_strength=direction_strength,
+        pitch_strength=pitch_strength,
+        roll_strength=roll_strength,
         right_missing_descent_rate=cfg["control"]["right_missing_descent_rate"],
     )
     link = None if args.dry_run else UdpLink(pi_host, port)

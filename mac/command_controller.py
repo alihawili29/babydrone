@@ -23,12 +23,18 @@ EMERGENCY_STOP = "EMERGENCY_STOP"
 
 class CommandController:
     def __init__(self, throttle_rate=0.25, direction_strength=0.25,
+                 pitch_strength=None, roll_strength=None,
                  right_missing_descent_rate=0.25):
         self.throttle_target = 0.0
         self.pitch = 0.0
         self.roll = 0.0
         self.throttle_rate = throttle_rate
-        self.direction_strength = direction_strength
+        # pitch/roll used to share one "direction_strength" knob. Roll's usable
+        # voltage range (PCF8591) is much narrower than pitch's (MCP4725), so
+        # they're now independently configurable — both still default to
+        # direction_strength when not given, for backward compatibility.
+        self.pitch_strength = pitch_strength if pitch_strength is not None else direction_strength
+        self.roll_strength = roll_strength if roll_strength is not None else direction_strength
         self.right_missing_descent_rate = right_missing_descent_rate
 
         self.state = DISARMED
@@ -84,13 +90,13 @@ class CommandController:
 
         # left hand controls pitch/roll — these don't accumulate, they just snap to a value
         if left_gesture == PITCH_FORWARD:
-            self.pitch = self.direction_strength
+            self.pitch = self.pitch_strength
         elif left_gesture == PITCH_BACKWARD:
-            self.pitch = -self.direction_strength
+            self.pitch = -self.pitch_strength
         elif left_gesture == ROLL_LEFT:
-            self.roll = -self.direction_strength
+            self.roll = -self.roll_strength
         elif left_gesture == ROLL_RIGHT:
-            self.roll = self.direction_strength
+            self.roll = self.roll_strength
         else:  # DIRECTION_NEUTRAL, LEFT_UNKNOWN, LEFT_MISSING all just mean "do nothing"
             self.pitch = 0.0
             self.roll = 0.0
